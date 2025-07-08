@@ -17,7 +17,6 @@ const initializeFirebase = () => {
         client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
       }),
     });
-    console.log("Firebase Admin initialized successfully");
   } catch (error) {
     console.error("Firebase Admin initialization error:", error.message);
   }

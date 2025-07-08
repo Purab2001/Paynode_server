@@ -4,7 +4,6 @@ const { ObjectId } = require("mongodb");
 // Get all worksheet entries for an employee
 const getWorksheetsByEmployee = async (req, res) => {
   try {
-    console.log("Received request for worksheets. Params:", req.params);
     const { employeeEmail } = req.params;
     const worksheets = await getDB()
       .collection("worksheets")
@@ -20,13 +19,11 @@ const getWorksheetsByEmployee = async (req, res) => {
     res.json({ success: true, worksheets });
   } catch (error) {
     console.error("Error fetching worksheets:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to fetch worksheets",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch worksheets",
+      error: error.message,
+    });
   }
 };
 
@@ -50,13 +47,11 @@ const createWorksheet = async (req, res) => {
     const result = await getDB().collection("worksheets").insertOne(worksheet);
     res.status(201).json({ success: true, worksheetId: result.insertedId });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to create worksheet",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to create worksheet",
+      error: error.message,
+    });
   }
 };
 
@@ -83,13 +78,11 @@ const updateWorksheet = async (req, res) => {
     }
     res.json({ success: true });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to update worksheet",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to update worksheet",
+      error: error.message,
+    });
   }
 };
 
@@ -113,13 +106,11 @@ const deleteWorksheet = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Delete worksheet error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to delete worksheet",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete worksheet",
+      error: error.message,
+    });
   }
 };
 

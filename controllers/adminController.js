@@ -38,8 +38,6 @@ const createAdminUser = async (req, res) => {
       process.env.ADMIN_NAME || "PayNode Admin"
     );
 
-    console.log("Admin user created in Firebase:", firebaseUser.uid);
-
     try {
       // Create user in MongoDB
       const adminUser = {
@@ -69,7 +67,6 @@ const createAdminUser = async (req, res) => {
       try {
         const { admin } = require("../config/firebase");
         await admin.auth().deleteUser(firebaseUser.uid);
-        console.log("Cleaned up Firebase user due to MongoDB error");
       } catch (cleanupError) {
         console.error("Failed to cleanup Firebase user:", cleanupError);
       }
