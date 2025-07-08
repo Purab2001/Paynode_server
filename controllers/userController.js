@@ -62,7 +62,35 @@ const getUserByEmail = async (req, res) => {
   }
 };
 
+const getUserRole = async (req, res) => {
+  try {
+    const email = req.params.email;
+    const usersCollection = getDB().collection("users");
+    const user = await usersCollection.findOne({ email: email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      role: user.role || "Employee", // Default to Employee if no role is set
+    });
+  } catch (error) {
+    console.error("Error fetching user role:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching user role",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createUser,
   getUserByEmail,
+  getUserRole,
 };

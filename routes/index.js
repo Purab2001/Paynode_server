@@ -1,6 +1,8 @@
 const express = require("express");
 const adminRoutes = require("./adminRoutes");
 const userRoutes = require("./userRoutes");
+const worksheetRoutes = require("./worksheetRoutes");
+const paymentRoutes = require("./paymentRoutes");
 
 const router = express.Router();
 
@@ -12,5 +14,7 @@ router.get("/", (req, res) => {
 // Mount route modules
 router.use("/", adminRoutes);
 router.use("/", userRoutes);
+router.use("/api/worksheets", worksheetRoutes);
+router.use("/api/payments", paymentRoutes);
 
 module.exports = router;
