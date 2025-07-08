@@ -4,7 +4,6 @@ const {
   getUserByEmail,
   getUserRole,
 } = require("../controllers/userController");
-const { verifyFirebaseToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -14,7 +13,7 @@ router.post("/users", createUser);
 // Get user by email
 router.get("/users/:email", getUserByEmail);
 
-// Get user role by email (protected route)
-router.get("/users/:email/role", verifyFirebaseToken, getUserRole);
+// Get user role by email
+router.get("/users/:email/role", getUserRole);
 
 module.exports = router;
