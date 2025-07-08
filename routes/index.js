@@ -3,6 +3,7 @@ const adminRoutes = require("./adminRoutes");
 const userRoutes = require("./userRoutes");
 const worksheetRoutes = require("./worksheetRoutes");
 const paymentRoutes = require("./paymentRoutes");
+const employeeRoutes = require("./employeeRoutes");
 
 const router = express.Router();
 
@@ -16,5 +17,6 @@ router.use("/", adminRoutes);
 router.use("/", userRoutes);
 router.use("/api/worksheets", worksheetRoutes);
 router.use("/api/payments", paymentRoutes);
+router.use("/api/employee", employeeRoutes);
 
 module.exports = router;
