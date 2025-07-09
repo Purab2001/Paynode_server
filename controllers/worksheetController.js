@@ -10,18 +10,36 @@ const getWorksheetsByEmployee = async (req, res) => {
       .find({ employeeEmail })
       .sort({ date: -1 })
       .toArray();
-    console.log(
-      "Fetched worksheets for:",
-      employeeEmail,
-      "Count:",
-      worksheets.length
-    );
     res.json({ success: true, worksheets });
   } catch (error) {
     console.error("Error fetching worksheets:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch worksheets",
+      error: error.message,
+    });
+  }
+};
+
+// HR: Get all worksheets (with optional filters)
+const getAllWorksheets = async (req, res) => {
+  try {
+    const { employee, month } = req.query;
+    const query = {};
+    if (employee) query.employeeEmail = employee;
+    if (month) query.date = { $regex: `^${month}` }; // assumes date is ISO string
+
+    const worksheets = await getDB()
+      .collection("worksheets")
+      .find(query)
+      .sort({ date: -1 })
+      .toArray();
+
+    res.json({ success: true, worksheets });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch all worksheets",
       error: error.message,
     });
   }
@@ -90,13 +108,10 @@ const updateWorksheet = async (req, res) => {
 const deleteWorksheet = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("Deleting worksheet with ID:", id);
-    console.log("User:", req.user);
 
     const result = await getDB()
       .collection("worksheets")
       .deleteOne({ _id: new ObjectId(id) });
-    console.log("Delete result:", result);
 
     if (result.deletedCount === 0) {
       return res
@@ -119,4 +134,5 @@ module.exports = {
   createWorksheet,
   updateWorksheet,
   deleteWorksheet,
+  getAllWorksheets,
 };

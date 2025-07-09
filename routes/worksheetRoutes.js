@@ -4,11 +4,20 @@ const {
   createWorksheet,
   updateWorksheet,
   deleteWorksheet,
+  getAllWorksheets,
 } = require("../controllers/worksheetController");
 const { verifyFirebaseToken } = require("../middleware/authMiddleware");
-const { requireEmployeeRole } = require("../middleware/roleMiddleware");
+const { requireEmployeeRole, requireHRRole } = require("../middleware/roleMiddleware");
 
 const router = express.Router();
+
+// HR: Get all worksheets (with optional filters)
+router.get(
+  "/all",
+  verifyFirebaseToken,
+  requireHRRole,
+  getAllWorksheets
+);
 
 // Get all worksheets for an employee
 router.get(
