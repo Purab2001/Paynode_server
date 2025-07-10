@@ -269,13 +269,16 @@ module.exports = {
       console.log("Request headers:", req.headers);
       const { id } = req.params;
       const { processedBy } = req.body;
+      console.log("Payroll approval: typeof id =", typeof id, "value =", id);
       const payrollCol = require("../config/database")
         .getDB()
         .collection("payroll_approvals");
       let objectId;
       try {
-        objectId = require("mongodb").ObjectId(id);
+        const { ObjectId } = require("mongodb");
+        objectId = new ObjectId(id);
       } catch (e) {
+        console.error("Payroll approval: invalid ObjectId", id, e);
         return res
           .status(400)
           .json({ success: false, message: "Invalid payroll request ID" });
