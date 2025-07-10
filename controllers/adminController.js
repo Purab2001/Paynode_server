@@ -246,8 +246,12 @@ module.exports = {
       const payrollCol = require("../config/database")
         .getDB()
         .collection("payroll_approvals");
+      let query = {};
+      if (!req.query.all) {
+        query.status = "pending";
+      }
       const requests = await payrollCol
-        .find({ status: "pending" })
+        .find(query)
         .sort({ createdAt: -1 })
         .toArray();
       res.json({ success: true, requests });
@@ -302,6 +306,30 @@ module.exports = {
             message: "Payroll request not found or already processed",
           });
       }
+
+      // Insert payment record for employee payment history
+      try {
+        const payrollDoc = await payrollCol.findOne({ _id: objectId });
+        if (payrollDoc) {
+          const paymentsCol = require("../config/database")
+            .getDB()
+            .collection("payments");
+          await paymentsCol.insertOne({
+            employeeEmail: payrollDoc.employeeEmail,
+            employeeName: payrollDoc.employeeName,
+            amount: payrollDoc.salary,
+            month: payrollDoc.month,
+            year: payrollDoc.year,
+            transactionId: req.body.transactionId || "", // Stripe PaymentIntent ID from frontend
+            paidAt: new Date(),
+            createdAt: new Date(),
+          });
+        }
+      } catch (err) {
+        console.error("Failed to insert payment record:", err);
+        // Do not block payroll approval if payment record insertion fails
+      }
+
       res.json({ success: true, message: "Payroll payment approved" });
     } catch (error) {
       console.error("Payroll approval error:", error);
