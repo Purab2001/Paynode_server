@@ -23,6 +23,16 @@ const verifyFirebaseToken = async (req, res, next) => {
       name: decodedToken.name,
     };
 
+    // Block login if user is fired
+    const db = require("../config/database").getDB();
+    const userDoc = await db.collection("users").findOne({ email: decodedToken.email });
+    if (userDoc && userDoc.fired) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied: Your account has been deactivated.",
+      });
+    }
+
     next();
   } catch (error) {
     console.error("Token verification error:", error);

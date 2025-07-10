@@ -1,3 +1,4 @@
+const { connectDB } = require("../config/database");
 const { getDB } = require("../config/database");
 const {
   createFirebaseUser,
@@ -84,4 +85,230 @@ const createAdminUser = async (req, res) => {
 
 module.exports = {
   createAdminUser,
+  // List all verified employees (including HRs)
+  getAllVerifiedEmployees: async (req, res) => {
+    try {
+      const usersCol = require("../config/database")
+        .getDB()
+        .collection("users");
+      const employees = await usersCol
+        .find({ role: { $in: ["Employee", "HR"] } })
+        .toArray();
+      res.json({ success: true, employees });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch verified employees",
+        error: err.message,
+      });
+    }
+  },
+  // Fire an employee or HR (set fired status)
+  fireEmployee: async (req, res) => {
+    try {
+      const { email } = req.params;
+      const usersCol = require("../config/database")
+        .getDB()
+        .collection("users");
+      const result = await usersCol.updateOne(
+        { email },
+        { $set: { fired: true } }
+      );
+      if (result.matchedCount === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+      res.json({ success: true, message: "User fired successfully" });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to fire user",
+        error: err.message,
+      });
+    }
+  },
+  // Rehire a fired employee or HR
+  rehireEmployee: async (req, res) => {
+    try {
+      const { email } = req.params;
+      const usersCol = require("../config/database")
+        .getDB()
+        .collection("users");
+      const result = await usersCol.updateOne(
+        { email, fired: true },
+        { $set: { fired: false } }
+      );
+      if (result.matchedCount === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found or not fired" });
+      }
+      res.json({ success: true, message: "User rehired successfully" });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to rehire user",
+        error: err.message,
+      });
+    }
+  },
+  // Promote employee to HR
+  promoteToHR: async (req, res) => {
+    try {
+      const { email } = req.params;
+      const usersCol = require("../config/database")
+        .getDB()
+        .collection("users");
+      const result = await usersCol.updateOne(
+        { email, role: "Employee" },
+        { $set: { role: "HR" } }
+      );
+      if (result.matchedCount === 0) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Employee not found or already HR",
+          });
+      }
+      res.json({ success: true, message: "Employee promoted to HR" });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to promote employee to HR",
+        error: err.message,
+      });
+    }
+  },
+  // Demote HR to Employee
+  demoteToEmployee: async (req, res) => {
+    try {
+      const { email } = req.params;
+      const usersCol = require("../config/database")
+        .getDB()
+        .collection("users");
+      const result = await usersCol.updateOne(
+        { email, role: "HR" },
+        { $set: { role: "Employee" } }
+      );
+      if (result.matchedCount === 0) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "HR not found or already Employee",
+          });
+      }
+      res.json({ success: true, message: "HR demoted to Employee" });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to demote HR to Employee",
+        error: err.message,
+      });
+    }
+  },
+  // Adjust salary for employee/HR
+  adjustSalary: async (req, res) => {
+    try {
+      const { email } = req.params;
+      const { salary } = req.body;
+      if (typeof salary !== "number" || salary < 0) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid salary value" });
+      }
+      const usersCol = require("../config/database")
+        .getDB()
+        .collection("users");
+      const result = await usersCol.updateOne(
+        { email, role: { $in: ["Employee", "HR"] } },
+        { $set: { salary } }
+      );
+      if (result.matchedCount === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
+      res.json({ success: true, message: "Salary updated successfully" });
+    } catch (err) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to update salary",
+        error: err.message,
+      });
+    }
+  },
+  // List payroll requests
+  getPayrollRequests: async (req, res) => {
+    try {
+      const payrollCol = require("../config/database")
+        .getDB()
+        .collection("payroll_approvals");
+      const requests = await payrollCol
+        .find({ status: "pending" })
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.json({ success: true, requests });
+    } catch (error) {
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Failed to fetch payroll requests",
+          error: error.message,
+        });
+    }
+  },
+  // Approve payroll payment
+  approvePayrollPayment: async (req, res) => {
+    console.log("approvePayrollPayment controller hit", req.params, req.body);
+    try {
+      console.log("Decoded user info:", req.user);
+      console.log("Request headers:", req.headers);
+      const { id } = req.params;
+      const { processedBy } = req.body;
+      const payrollCol = require("../config/database")
+        .getDB()
+        .collection("payroll_approvals");
+      let objectId;
+      try {
+        objectId = require("mongodb").ObjectId(id);
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid payroll request ID" });
+      }
+      console.log("Payroll approval debug:", {
+        id,
+        processedBy,
+        query: { _id: objectId, status: "pending" },
+      });
+      const result = await payrollCol.updateOne(
+        { _id: objectId, status: "pending" },
+        { $set: { status: "approved", processedAt: new Date(), processedBy } },
+        { bypassDocumentValidation: true }
+      );
+      console.log("Payroll approval updateOne result:", result);
+      if (result.matchedCount === 0) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Payroll request not found or already processed",
+          });
+      }
+      res.json({ success: true, message: "Payroll payment approved" });
+    } catch (error) {
+      console.error("Payroll approval error:", error);
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Failed to approve payroll payment",
+          error: error.message,
+        });
+    }
+  },
 };

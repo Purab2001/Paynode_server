@@ -14,8 +14,8 @@ router.get("/", (req, res) => {
   res.send("PayNode Server is running");
 });
 
-// Mount route modules
-router.use("/", adminRoutes);
+ // Mount route modules
+router.use("/api/admin", adminRoutes);
 router.use("/", userRoutes);
 router.use("/api/worksheets", worksheetRoutes);
 router.use("/api/payments", paymentRoutes);

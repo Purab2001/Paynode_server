@@ -63,4 +63,25 @@ async function requireHRRole(req, res, next) {
   }
 }
 
-module.exports = { requireEmployeeRole, requireHRRole };
+async function requireAdminRole(req, res, next) {
+  try {
+    const email = req.user && req.user.email;
+    if (!email) {
+      return res.status(401).json({ success: false, message: "Unauthorized: No user email found" });
+    }
+    const user = await getDB().collection("users").findOne({ email });
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Forbidden: Admin access only" });
+    }
+    next();
+  } catch (err) {
+    console.error("RoleMiddleware: Error during admin role check:", err);
+    res.status(500).json({
+      success: false,
+      message: "Role check failed",
+      error: err.message,
+    });
+  }
+}
+
+module.exports = { requireEmployeeRole, requireHRRole, requireAdminRole };
