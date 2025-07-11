@@ -57,7 +57,9 @@ const startServer = async () => {
     await connectDB();
 
     // Start the Express server
-    app.listen(port, () => {});
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}`);
+    });
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
