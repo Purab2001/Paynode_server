@@ -261,13 +261,9 @@ module.exports = {
   },
   // Approve payroll payment
   approvePayrollPayment: async (req, res) => {
-    console.log("approvePayrollPayment controller hit", req.params, req.body);
     try {
-      console.log("Decoded user info:", req.user);
-      console.log("Request headers:", req.headers);
       const { id } = req.params;
       const { processedBy } = req.body;
-      console.log("Payroll approval: typeof id =", typeof id, "value =", id);
       const payrollCol = require("../config/database")
         .getDB()
         .collection("payroll_approvals");
@@ -281,17 +277,11 @@ module.exports = {
           .status(400)
           .json({ success: false, message: "Invalid payroll request ID" });
       }
-      console.log("Payroll approval debug:", {
-        id,
-        processedBy,
-        query: { _id: objectId, status: "pending" },
-      });
       const result = await payrollCol.updateOne(
         { _id: objectId, status: "pending" },
         { $set: { status: "approved", processedAt: new Date(), processedBy } },
         { bypassDocumentValidation: true }
       );
-      console.log("Payroll approval updateOne result:", result);
       if (result.matchedCount === 0) {
         return res.status(404).json({
           success: false,

@@ -34,23 +34,19 @@ function requireEmployeeOrAdminOrHR(req, res, next) {
   const paramEmail =
     (req.params && req.params.employeeEmail) ||
     (req.body && req.body.employeeEmail);
-  console.log("requireEmployeeOrAdminOrHR", { user, paramEmail });
   if (!user || !user.email) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
   // Only HR and admin can see all, employees only their own
   if (user.role === "admin" || user.role === "HR") return next();
-  console.log("[paymentHistoryAccess] user.role:", user.role, "user.email:", user.email, "paramEmail:", paramEmail);
   if (
     user.role === "Employee" &&
     user.email &&
     paramEmail &&
     user.email.toLowerCase() === paramEmail.toLowerCase()
   ) {
-    console.log("[paymentHistoryAccess] Employee self-access allowed");
     return next();
   }
-  console.log("[paymentHistoryAccess] Forbidden");
   return res.status(403).json({ success: false, message: "Forbidden" });
 }
 
