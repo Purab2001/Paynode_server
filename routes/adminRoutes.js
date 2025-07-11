@@ -23,13 +23,19 @@ router.get("/employees", getAllVerifiedEmployees);
 
 // Fire an employee or HR
 // Rehire a fired employee or HR
-router.put("/employees/:email/rehire", require("../controllers/adminController").rehireEmployee);
+router.put(
+  "/employees/:email/rehire",
+  require("../controllers/adminController").rehireEmployee
+);
 router.put("/employees/:email/fire", fireEmployee);
 
 // Promote employee to HR
 router.put("/employees/:email/promote", promoteToHR);
 // Demote HR to Employee
-router.put("/employees/:email/demote", require("../controllers/adminController").demoteToEmployee);
+router.put(
+  "/employees/:email/demote",
+  require("../controllers/adminController").demoteToEmployee
+);
 
 // Adjust salary for employee/HR
 router.put("/employees/:email/salary", adjustSalary);
@@ -41,6 +47,17 @@ const { verifyFirebaseToken } = require("../middleware/authMiddleware");
 const { requireAdminRole } = require("../middleware/roleMiddleware");
 
 // Approve payroll payment
-router.put("/payroll/:id/approve", verifyFirebaseToken, requireAdminRole, approvePayrollPayment);
+router.put(
+  "/payroll/:id/approve",
+  verifyFirebaseToken,
+  requireAdminRole,
+  approvePayrollPayment
+);
+
+// Admin dashboard stats
+router.get(
+  "/dashboard-stats",
+  require("../controllers/adminController").getAdminDashboardStats
+);
 
 module.exports = router;

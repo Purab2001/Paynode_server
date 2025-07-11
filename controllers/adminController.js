@@ -165,12 +165,10 @@ module.exports = {
         { $set: { role: "HR" } }
       );
       if (result.matchedCount === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Employee not found or already HR",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found or already HR",
+        });
       }
       res.json({ success: true, message: "Employee promoted to HR" });
     } catch (err) {
@@ -193,12 +191,10 @@ module.exports = {
         { $set: { role: "Employee" } }
       );
       if (result.matchedCount === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "HR not found or already Employee",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "HR not found or already Employee",
+        });
       }
       res.json({ success: true, message: "HR demoted to Employee" });
     } catch (err) {
@@ -256,13 +252,11 @@ module.exports = {
         .toArray();
       res.json({ success: true, requests });
     } catch (error) {
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: "Failed to fetch payroll requests",
-          error: error.message,
-        });
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch payroll requests",
+        error: error.message,
+      });
     }
   },
   // Approve payroll payment
@@ -299,12 +293,10 @@ module.exports = {
       );
       console.log("Payroll approval updateOne result:", result);
       if (result.matchedCount === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Payroll request not found or already processed",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "Payroll request not found or already processed",
+        });
       }
 
       // Insert payment record for employee payment history
@@ -333,13 +325,53 @@ module.exports = {
       res.json({ success: true, message: "Payroll payment approved" });
     } catch (error) {
       console.error("Payroll approval error:", error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: "Failed to approve payroll payment",
-          error: error.message,
-        });
+      res.status(500).json({
+        success: false,
+        message: "Failed to approve payroll payment",
+        error: error.message,
+      });
     }
   },
+};
+
+// Admin dashboard stats (total, verified, unverified employees, HR count)
+module.exports.getAdminDashboardStats = async (req, res) => {
+  try {
+    const usersCol = require("../config/database").getDB().collection("users");
+    // Count total employees and HRs (excluding fired)
+    const totalEmployees = await usersCol.countDocuments({
+      role: { $in: ["Employee", "HR"] },
+      fired: { $ne: true },
+    });
+    // Count verified employees and HRs
+    const verifiedEmployees = await usersCol.countDocuments({
+      role: { $in: ["Employee", "HR"] },
+      isVerified: true,
+      fired: { $ne: true },
+    });
+    // Count unverified employees and HRs
+    const unverifiedEmployees = await usersCol.countDocuments({
+      role: { $in: ["Employee", "HR"] },
+      isVerified: { $ne: true },
+      fired: { $ne: true },
+    });
+    // Count HRs
+    const hrCount = await usersCol.countDocuments({
+      role: "HR",
+      fired: { $ne: true },
+    });
+    res.json({
+      success: true,
+      totalEmployees,
+      verifiedEmployees,
+      unverifiedEmployees,
+      hrCount,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch admin dashboard stats",
+      error: err.message,
+    });
+  }
 };
