@@ -16,11 +16,12 @@ const verifyFirebaseToken = async (req, res, next) => {
     // Verify the Firebase token
     const decodedToken = await admin.auth().verifyIdToken(token);
 
-    // Attach user info to request
+    // Attach user info to request (including custom claims)
     req.user = {
       uid: decodedToken.uid,
       email: decodedToken.email,
       name: decodedToken.name,
+      role: decodedToken.role || "Employee",
     };
 
     // Block login if user is fired

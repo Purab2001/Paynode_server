@@ -1,11 +1,11 @@
 const { getDB } = require("../config/database");
+const { setCustomUserClaims } = require("../services/firebaseService");
 
 const createUser = async (req, res) => {
   try {
     const userData = req.body;
     const usersCollection = getDB().collection("users");
 
-    // Check if user already exists
     const existingUser = await usersCollection.findOne({
       email: userData.email,
     });
@@ -17,8 +17,15 @@ const createUser = async (req, res) => {
       });
     }
 
-    // Create new user
     const result = await usersCollection.insertOne(userData);
+
+    if (userData.uid && userData.role) {
+      try {
+        await setCustomUserClaims(userData.uid, userData.role);
+      } catch (claimError) {
+        console.error("Failed to set custom claims:", claimError.message);
+      }
+    }
 
     res.status(201).json({
       success: true,

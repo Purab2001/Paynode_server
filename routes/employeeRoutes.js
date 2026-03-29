@@ -9,10 +9,16 @@ const {
   getAllEmployees,
   toggleEmployeeVerification,
   getEmployeeBySlug,
+  getEmployeeDashboard,
+  getEmployeeOverview,
 } = require("../controllers/employeeController");
 const { verifyFirebaseToken } = require("../middleware/authMiddleware");
 
-// All routes require authentication
+// Combined endpoints for better performance
+router.get("/dashboard/:email", verifyFirebaseToken, getEmployeeDashboard);
+router.get("/overview/:email", verifyFirebaseToken, getEmployeeOverview);
+
+// Individual endpoints (for backward compatibility)
 router.get("/stats/:email", verifyFirebaseToken, getEmployeeStats);
 router.get(
   "/recent-activity/:email",

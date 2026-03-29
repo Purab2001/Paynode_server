@@ -26,7 +26,17 @@ const getFirebaseUserByEmail = async (email) => {
   }
 };
 
+const setCustomUserClaims = async (uid, role) => {
+  try {
+    await admin.auth().setCustomUserClaims(uid, { role });
+    return true;
+  } catch (error) {
+    throw new Error(`Failed to set custom claims: ${error.message}`);
+  }
+};
+
 module.exports = {
   createFirebaseUser,
   getFirebaseUserByEmail,
+  setCustomUserClaims,
 };

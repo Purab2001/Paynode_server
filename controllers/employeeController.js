@@ -272,6 +272,154 @@ async function getEmployeeBySlug(req, res) {
   }
 }
 
+async function getEmployeeDashboard(req, res) {
+  try {
+    const email = req.params.email;
+    const worksheetCol = getCollection("worksheets");
+    const paymentCol = getCollection("payments");
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [hoursAgg, recentWorks, recentPays] = await Promise.all([
+      worksheetCol
+        .aggregate([
+          { $addFields: { dateObj: { $toDate: "$date" } } },
+          { $match: { employeeEmail: email, dateObj: { $gte: monthStart } } },
+          {
+            $group: {
+              _id: null,
+              totalHours: { $sum: "$hoursWorked" },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      worksheetCol
+        .find({ employeeEmail: email })
+        .sort({ date: -1 })
+        .limit(5)
+        .toArray(),
+      paymentCol
+        .find({ employeeEmail: email })
+        .sort({ date: -1 })
+        .limit(2)
+        .toArray(),
+    ]);
+
+    const hoursThisMonth = hoursAgg[0]?.totalHours || 0;
+    const entriesThisMonth = hoursAgg[0]?.count || 0;
+
+    const lastPayment = recentPays[0];
+    const pendingTasks = await worksheetCol.countDocuments({
+      employeeEmail: email,
+      status: "pending",
+    });
+
+    const activity = [
+      ...recentWorks.map((w) => ({
+        icon: "📝",
+        title: w.task,
+        description: `Worked ${w.hoursWorked}h`,
+        date: new Date(w.date).toLocaleDateString(),
+      })),
+      ...recentPays.map((p) => ({
+        icon: "💸",
+        title: "Salary Payment",
+        description: `Received ৳${p.amount}`,
+        date: new Date(p.date).toLocaleDateString(),
+      })),
+    ]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 7);
+
+    res.json({
+      hoursThisMonth,
+      entriesThisMonth,
+      lastPaymentAmount: lastPayment?.amount || null,
+      lastPaymentDate: lastPayment?.date
+        ? new Date(lastPayment.date).toLocaleDateString()
+        : null,
+      pendingTasks,
+      activity,
+    });
+  } catch (err) {
+    console.error("[getEmployeeDashboard] Error", err);
+    res.status(500).json({ error: "Failed to fetch dashboard", details: err.message });
+  }
+}
+
+async function getEmployeeOverview(req, res) {
+  try {
+    const email = req.params.email;
+    const worksheetCol = getCollection("worksheets");
+
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [weekAgg, monthAgg, recentWork] = await Promise.all([
+      worksheetCol
+        .aggregate([
+          { $addFields: { dateObj: { $toDate: "$date" } } },
+          { $match: { employeeEmail: email, dateObj: { $gte: weekStart } } },
+          { $group: { _id: null, totalHours: { $sum: "$hoursWorked" } } },
+        ])
+        .toArray(),
+      worksheetCol
+        .aggregate([
+          { $addFields: { dateObj: { $toDate: "$date" } } },
+          { $match: { employeeEmail: email, dateObj: { $gte: monthStart } } },
+          {
+            $group: {
+              _id: null,
+              totalHours: { $sum: "$hoursWorked" },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray(),
+      worksheetCol
+        .aggregate([
+          { $match: { employeeEmail: email } },
+          { $addFields: { dateObj: { $toDate: "$date" } } },
+          { $sort: { dateObj: -1 } },
+          { $limit: 5 },
+        ])
+        .toArray(),
+    ]);
+
+    const hoursThisWeek = weekAgg[0]?.totalHours || 0;
+    const hoursThisMonth = monthAgg[0]?.totalHours || 0;
+    const tasksCompleted = monthAgg[0]?.count || 0;
+    const efficiency = tasksCompleted
+      ? Math.round((tasksCompleted / 20) * 100) + "%"
+      : "N/A";
+
+    const recentWorkData = recentWork.map((w) => ({
+      task: w.task,
+      description: w.description || "",
+      status: w.status || "Completed",
+      date: w.dateObj
+        ? new Date(w.dateObj).toLocaleDateString()
+        : w.date
+        ? new Date(w.date).toLocaleDateString()
+        : "",
+    }));
+
+    res.json({
+      hoursThisWeek,
+      hoursThisMonth,
+      tasksCompleted,
+      efficiency,
+      recentWork: recentWorkData,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch overview", details: err.message });
+  }
+}
+
 module.exports = {
   getEmployeeStats,
   getEmployeeRecentActivity,
@@ -280,4 +428,6 @@ module.exports = {
   getAllEmployees,
   toggleEmployeeVerification,
   getEmployeeBySlug,
+  getEmployeeDashboard,
+  getEmployeeOverview,
 };

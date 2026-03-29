@@ -3,6 +3,7 @@ const { getDB } = require("../config/database");
 const {
   createFirebaseUser,
   getFirebaseUserByEmail,
+  setCustomUserClaims,
 } = require("../services/firebaseService");
 
 const createAdminUser = async (req, res) => {
@@ -38,6 +39,9 @@ const createAdminUser = async (req, res) => {
       process.env.ADMIN_PASSWORD,
       process.env.ADMIN_NAME || "PayNode Admin"
     );
+
+    // Set custom claims for role
+    await setCustomUserClaims(firebaseUser.uid, "admin");
 
     try {
       // Create user in MongoDB
@@ -160,15 +164,19 @@ module.exports = {
       const usersCol = require("../config/database")
         .getDB()
         .collection("users");
-      const result = await usersCol.updateOne(
-        { email, role: "Employee" },
-        { $set: { role: "HR" } }
-      );
-      if (result.matchedCount === 0) {
+      const user = await usersCol.findOne({ email, role: "Employee" });
+      if (!user) {
         return res.status(404).json({
           success: false,
           message: "Employee not found or already HR",
         });
+      }
+      await usersCol.updateOne(
+        { email, role: "Employee" },
+        { $set: { role: "HR" } }
+      );
+      if (user.firebaseUid) {
+        await setCustomUserClaims(user.firebaseUid, "HR");
       }
       res.json({ success: true, message: "Employee promoted to HR" });
     } catch (err) {
@@ -186,15 +194,19 @@ module.exports = {
       const usersCol = require("../config/database")
         .getDB()
         .collection("users");
-      const result = await usersCol.updateOne(
-        { email, role: "HR" },
-        { $set: { role: "Employee" } }
-      );
-      if (result.matchedCount === 0) {
+      const user = await usersCol.findOne({ email, role: "HR" });
+      if (!user) {
         return res.status(404).json({
           success: false,
           message: "HR not found or already Employee",
         });
+      }
+      await usersCol.updateOne(
+        { email, role: "HR" },
+        { $set: { role: "Employee" } }
+      );
+      if (user.firebaseUid) {
+        await setCustomUserClaims(user.firebaseUid, "Employee");
       }
       res.json({ success: true, message: "HR demoted to Employee" });
     } catch (err) {

@@ -1,9 +1,6 @@
-const { getDB } = require("../config/database");
-
 // Middleware to check if user has "employee" role and is accessing their own data
 async function requireEmployeeRole(req, res, next) {
   try {
-    // Get user email from JWT and from request params/body
     const userEmail = req.user && req.user.email;
     const paramEmail =
       (req.params && req.params.employeeEmail) ||
@@ -15,15 +12,14 @@ async function requireEmployeeRole(req, res, next) {
         .json({ success: false, message: "Unauthorized: No user email found" });
     }
 
-    // Only allow if the user is accessing their own data
     if (paramEmail && userEmail !== paramEmail) {
       return res
         .status(403)
         .json({ success: false, message: "Forbidden: Can only access your own worksheet data" });
     }
 
-    const user = await getDB().collection("users").findOne({ email: userEmail });
-    if (!user || user.role !== "Employee") {
+    const userRole = req.user?.role;
+    if (userRole !== "Employee" && userRole !== "HR" && userRole !== "admin") {
       return res
         .status(403)
         .json({ success: false, message: "Forbidden: Employee access only" });
@@ -48,8 +44,8 @@ async function requireHRRole(req, res, next) {
     if (!email) {
       return res.status(401).json({ success: false, message: "Unauthorized: No user email found" });
     }
-    const user = await getDB().collection("users").findOne({ email });
-    if (!user || user.role !== "HR") {
+    const userRole = req.user?.role;
+    if (userRole !== "HR" && userRole !== "admin") {
       return res.status(403).json({ success: false, message: "Forbidden: HR access only" });
     }
     next();
@@ -69,8 +65,8 @@ async function requireAdminRole(req, res, next) {
     if (!email) {
       return res.status(401).json({ success: false, message: "Unauthorized: No user email found" });
     }
-    const user = await getDB().collection("users").findOne({ email });
-    if (!user || user.role !== "admin") {
+    const userRole = req.user?.role;
+    if (userRole !== "admin") {
       return res.status(403).json({ success: false, message: "Forbidden: Admin access only" });
     }
     next();
