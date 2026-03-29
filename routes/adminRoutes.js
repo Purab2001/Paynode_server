@@ -18,6 +18,31 @@ const router = express.Router();
 // Create admin user route (backend only)
 router.post("/create-admin", createAdminUser);
 
+// Sync custom claims for existing users
+router.post("/sync-claims", async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    if (!email || !role) {
+      return res.status(400).json({ success: false, message: "Email and role required" });
+    }
+    
+    const usersCol = require("../config/database").getDB().collection("users");
+    const user = await usersCol.findOne({ email });
+    
+    const uid = user?.firebaseUid || user?.uid;
+    if (!user || !uid) {
+      return res.status(404).json({ success: false, message: "User not found or no uid" });
+    }
+    
+    const { admin } = require("../config/firebase");
+    await admin.auth().setCustomUserClaims(uid, { role });
+    
+    res.json({ success: true, message: `Claims updated for ${email} to ${role}` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // List all verified employees (including HRs)
 router.get("/employees", getAllVerifiedEmployees);
 
