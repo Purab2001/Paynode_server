@@ -26,7 +26,9 @@ const schema = z.object({
     .refine((v) => Buffer.from(v, "base64").length === 32, "must be 32 bytes, base64-encoded"),
 });
 
-const parsed = schema.safeParse(process.env);
+// A variable that exists but is blank (easy to leave behind in a hosting dashboard) counts as not set.
+const present = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ""));
+const parsed = schema.safeParse(present);
 if (!parsed.success) {
   console.error("Invalid environment:", z.flattenError(parsed.error).fieldErrors);
   throw new Error("Invalid environment variables");
