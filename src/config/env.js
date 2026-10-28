@@ -30,8 +30,10 @@ const schema = z.object({
 const present = Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== ""));
 const parsed = schema.safeParse(present);
 if (!parsed.success) {
-  console.error("Invalid environment:", z.flattenError(parsed.error).fieldErrors);
-  throw new Error("Invalid environment variables");
+  const fields = z.flattenError(parsed.error).fieldErrors;
+  console.error("Invalid environment:", fields);
+  // Variable names only (never values), so index.js can report what to fix.
+  throw Object.assign(new Error("Invalid environment variables"), { fields: Object.keys(fields) });
 }
 
 export const env = parsed.data;
