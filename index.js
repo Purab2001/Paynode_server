@@ -1,7 +1,7 @@
 // Vercel entry (see vercel.json). Locally it also starts a listener.
 //
 // If the app can't start (typically a missing or malformed environment variable), answer every request
-// with a JSON error that names the offending variables instead of a bare platform crash page.
+// with a JSON error instead of a bare platform crash page.
 let app;
 let port = 5000;
 
@@ -11,11 +11,11 @@ try {
   port = env.PORT;
 } catch (err) {
   console.error("PayNode API failed to start:", err);
+  const reason = String(err.message).split("\n")[0].slice(0, 200);
   app = (req, res) => {
     res.statusCode = 500;
     res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ error: { code: "STARTUP_FAILED", message: "The API failed to start.", ...(err.fields && { invalid: err.fields }), reason: String(err.message).split("
-")[0].slice(0, 200) } }));
+    res.end(JSON.stringify({ error: { code: "STARTUP_FAILED", message: "The API failed to start.", ...(err.fields && { invalid: err.fields }), reason } }));
   };
 }
 
