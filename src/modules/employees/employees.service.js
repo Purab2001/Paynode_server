@@ -3,6 +3,7 @@ import { audit } from "../../db/models/AuditLog.js";
 import { forbidden, notFound, unprocessable } from "../../lib/errors.js";
 import { getFirebaseAuth, syncRoleClaim } from "../../lib/firebase.js";
 import { disconnectFromChat } from "../../lib/realtime.js";
+import { pageInfo } from "../../lib/pagination.js";
 
 // HR manages Employees; admins manage Employees and HR. Nobody manages admins through the API.
 const manageableRoles = (viewer) => (viewer.role === "admin" ? ["Employee", "HR"] : ["Employee"]);
@@ -32,7 +33,7 @@ export async function list(viewer, { q, role, status, verified, page, limit }) {
     User.find(filter).sort({ name: 1 }).skip((page - 1) * limit).limit(limit),
     User.countDocuments(filter),
   ]);
-  return { items, total, page, pages: Math.max(1, Math.ceil(total / limit)) };
+  return { items, ...pageInfo(total, page, limit) };
 }
 
 export async function stats(viewer) {

@@ -1,5 +1,6 @@
 import { Payment } from "../../db/models/Payment.js";
 import { PayrollRequest } from "../../db/models/PayrollRequest.js";
+import { pageInfo } from "../../lib/pagination.js";
 
 const toCents = (amount) => Math.round(amount * 100);
 
@@ -44,15 +45,13 @@ export async function recordSucceededIntent(intent) {
   return "recorded";
 }
 
-const paging = (page, limit, total) => ({ page, pages: Math.max(1, Math.ceil(total / limit)) });
-
 export async function list({ employee, page, limit }) {
   const filter = employee ? { employee } : {};
   const [items, total] = await Promise.all([
     Payment.find(filter).sort({ "period.year": -1, "period.month": -1 }).skip((page - 1) * limit).limit(limit).populate("employee", "name email photoUrl"),
     Payment.countDocuments(filter),
   ]);
-  return { items, total, ...paging(page, limit, total) };
+  return { items, ...pageInfo(total, page, limit) };
 }
 
 export async function listMine(viewer, { page, limit }) {
@@ -64,5 +63,5 @@ export async function listMine(viewer, { page, limit }) {
     Payment.aggregate([{ $match: filter }, { $group: { _id: null, totalPaid: { $sum: "$amount" } } }]),
     Payment.findOne(filter).sort(newestFirst),
   ]);
-  return { items, total, summary: { totalPaid: sums[0]?.totalPaid ?? 0, last }, ...paging(page, limit, total) };
+  return { items, summary: { totalPaid: sums[0]?.totalPaid ?? 0, last }, ...pageInfo(total, page, limit) };
 }

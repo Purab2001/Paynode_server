@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import { env } from "../../config/env.js";
 import { ContactMessage } from "../../db/models/ContactMessage.js";
 import { notFound } from "../../lib/errors.js";
+import { pageInfo } from "../../lib/pagination.js";
 import { authenticate, requireRole } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { idParams, listQuery, statusBody, submitBody } from "./contact.schema.js";
@@ -37,7 +38,7 @@ contactRouter.get("/", validate({ query: listQuery }), async (req, res) => {
     ContactMessage.countDocuments(filter),
     ContactMessage.countDocuments({ status: "new" }),
   ]);
-  res.json({ items, total, unread, page, pages: Math.max(1, Math.ceil(total / limit)) });
+  res.json({ items, unread, ...pageInfo(total, page, limit) });
 });
 
 contactRouter.get("/unread-count", async (req, res) => {

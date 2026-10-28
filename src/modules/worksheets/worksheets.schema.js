@@ -1,9 +1,8 @@
 import { z } from "zod";
 import { TASKS } from "../../db/models/Worksheet.js";
+import { idParams as idParamsFor, objectId, paging } from "../../lib/schemas.js";
 
-export const idParams = z.object({
-  id: z.string().regex(/^[a-f\d]{24}$/i, "Invalid entry id"),
-});
+export const idParams = idParamsFor("entry id");
 
 const day = z
   .string()
@@ -16,29 +15,28 @@ const entryFields = {
   task: z.enum(TASKS),
   hours: z.coerce.number().min(0.25, "Log at least 15 minutes").max(24, "A day only has 24 hours"),
   date: day,
-  note: z.string().trim().max(200).default(""),
+  note: z.string().trim().max(200),
 };
 
-export const createBody = z.object(entryFields);
+// The note defaults to blank on create only. On update a missing note must stay as it is, not be wiped.
+export const createBody = z.object({ ...entryFields, note: entryFields.note.default("") });
 export const updateBody = z
   .object(entryFields)
   .partial()
   .refine((v) => Object.keys(v).length > 0, "Nothing to update");
 
-const paging = {
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
-};
+const page = paging();
 
-export const mineQuery = z.object({ from: day.optional(), to: day.optional(), ...paging });
+export const mineQuery = z.object({ from: day.optional(), to: day.optional(), ...page });
 export const summaryQuery = z.object({ today: day.optional() });
 
 export const teamQuery = z.object({
-  employee: z.string().regex(/^[a-f\d]{24}$/i).optional(),
+  employee: objectId("employee id").optional(),
+  q: z.string().trim().max(80).optional(), // part of an employee's name
   month: month.optional(),
   task: z.enum(TASKS).optional(),
   status: z.enum(["submitted", "approved", "rejected"]).optional(),
-  ...paging,
+  ...page,
 });
 
 export const reviewBody = z.object({ status: z.enum(["approved", "rejected"]) });

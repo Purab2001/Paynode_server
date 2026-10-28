@@ -16,19 +16,17 @@ export async function employeeStats(viewer, { today = new Date().toISOString().s
   const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const inMonth = { user: viewer._id, date: { $gte: monthStart, $lt: nextMonth } };
 
-  const [base, byTask, days, latest, lastPayment] = await Promise.all([
+  const [base, byTask, latest, lastPayment] = await Promise.all([
     worksheetSummary(viewer, { today }),
     Worksheet.aggregate([{ $match: inMonth }, { $group: { _id: "$task", hours: { $sum: "$hours" } } }, { $sort: { hours: -1 } }]),
-    Worksheet.distinct("date", inMonth),
     Worksheet.find({ user: viewer._id }).sort({ date: -1, createdAt: -1 }).limit(3),
     Payment.findOne({ employee: viewer._id }).sort({ "period.year": -1, "period.month": -1 }),
   ]);
 
   return {
     ...base,
-    daysLogged: days.length,
     avgPerEntry: base.monthEntries ? base.monthHours / base.monthEntries : 0,
-    avgPerDay: days.length ? base.monthHours / days.length : 0,
+    avgPerDay: base.daysLogged ? base.monthHours / base.daysLogged : 0,
     taskDistribution: byTask.map((t) => ({ label: t._id, value: t.hours })),
     latestEntries: latest,
     lastPayment,
@@ -44,12 +42,15 @@ async function totalsByStatus(match) {
   return totals;
 }
 
-/** Payroll numbers for HR (their own requests) and admins (everything). */
-export async function payrollStats(viewer) {
+/**
+ * Payroll numbers for HR (their own requests) and admins (everything).
+ * "This month" is the caller's own current month (year/month from the browser), so the figures match the label they show.
+ */
+export async function payrollStats(viewer, { year: y, month: m } = {}) {
   const scope = viewer.role === "HR" ? { requestedBy: new mongoose.Types.ObjectId(viewer.id) } : {};
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth() + 1;
+  const year = y ?? now.getUTCFullYear();
+  const month = m ?? now.getUTCMonth() + 1;
 
   // Twelve months ending now, oldest first, including months with nothing in them.
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -77,7 +78,7 @@ export async function payrollStats(viewer) {
     const row = trendRows.find((r) => r._id.year === m.year && r._id.month === m.month);
     return { ...m, requested: row?.requested ?? 0, paid: row?.paid ?? 0 };
   });
-  return { trend, all, thisMonth, pending: all.pending };
+  return { period: { year, month }, trend, all, thisMonth, pending: all.pending };
 }
 
 const when = (d) => new Date(d).toISOString();

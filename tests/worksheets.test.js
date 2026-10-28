@@ -74,6 +74,23 @@ describe("employee entries", () => {
     expect(await Worksheet.countDocuments()).toBe(0);
   });
 
+  it("keeps the note when an update doesn't mention it", async () => {
+    const { body } = await request(app).post("/api/worksheets").set(bearer("ann")).send(entry);
+    const res = await request(app).patch(`/api/worksheets/${body.id}`).set(bearer("ann")).send({ hours: 2 });
+    expect(res.body).toMatchObject({ hours: 2, note: "Payroll filters" });
+  });
+
+  it("clears the earlier review when an entry is resubmitted", async () => {
+    const { body } = await request(app).post("/api/worksheets").set(bearer("ann")).send(entry);
+    await request(app).patch(`/api/worksheets/${body.id}/status`).set(bearer("hr1")).send({ status: "rejected" });
+    expect((await Worksheet.findById(body.id)).reviewedAt).toBeDefined();
+    await request(app).patch(`/api/worksheets/${body.id}`).set(bearer("ann")).send({ hours: 5 });
+    const stored = await Worksheet.findById(body.id);
+    expect(stored.status).toBe("submitted");
+    expect(stored.reviewedAt).toBeUndefined();
+    expect(stored.reviewedBy).toBeUndefined();
+  });
+
   it("locks approved entries and re-queues edited rejected ones", async () => {
     const { body } = await request(app).post("/api/worksheets").set(bearer("ann")).send(entry);
 
@@ -95,6 +112,7 @@ describe("employee entries", () => {
     expect(res.body.week).toHaveLength(5);
     expect(res.body.monthHours).toBe(7);
     expect(res.body.monthEntries).toBe(2);
+    expect(res.body.daysLogged).toBe(1);
     // today falls on a weekend → week bars stay empty; otherwise they hold the 7 hours
     const day = new Date(`${today}T00:00:00Z`).getUTCDay();
     expect(res.body.weekHours).toBe(7);
@@ -127,6 +145,14 @@ describe("team view", () => {
 
     const byPerson = await request(app).get(`/api/worksheets?employee=${bob.id}&task=Sales`).set(bearer("hr1"));
     expect(byPerson.body.total).toBe(1);
+  });
+
+  it("finds entries by part of an employee's name, including deactivated people", async () => {
+    await User.updateOne({ _id: bob._id }, { isActive: false });
+    const res = await request(app).get("/api/worksheets?q=bo").set(bearer("hr1"));
+    expect(res.body.total).toBe(2);
+    expect((await request(app).get("/api/worksheets?q=zzz").set(bearer("hr1"))).body.total).toBe(0);
+    expect((await request(app).get("/api/worksheets?q=(").set(bearer("hr1"))).status).toBe(200); // regex characters are escaped
   });
 
   it("rejects malformed filters", async () => {

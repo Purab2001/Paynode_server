@@ -14,8 +14,10 @@ statsRouter.get("/me", requireRole("Employee"), validate({ query: meQuery }), as
   res.json(await stats.employeeStats(req.user, req.valid.query));
 });
 
-statsRouter.get("/payroll", requireRole("HR", "admin"), async (req, res) => {
-  res.json(await stats.payrollStats(req.user));
+const payrollQuery = z.object({ year: z.coerce.number().int().min(2000).max(2100).optional(), month: z.coerce.number().int().min(1).max(12).optional() });
+
+statsRouter.get("/payroll", requireRole("HR", "admin"), validate({ query: payrollQuery }), async (req, res) => {
+  res.json(await stats.payrollStats(req.user, req.valid.query));
 });
 
 statsRouter.get("/activity", requireRole("admin"), async (req, res) => {

@@ -75,7 +75,7 @@ describe("payment intents", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ clientSecret: "pi_123_secret", amount: 5400 });
     expect(stripe.client.paymentIntents.create).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 540000, currency: "usd", metadata: { payrollId: String(req1._id) } }),
+      expect.objectContaining({ amount: 540000, currency: "usd", payment_method_types: ["card"], metadata: { payrollId: String(req1._id) } }),
     );
   });
 

@@ -1,8 +1,7 @@
 import { z } from "zod";
+import { idParams as idParamsFor, objectId, paging } from "../../lib/schemas.js";
 
-const objectId = (label) => z.string().regex(/^[a-f\d]{24}$/i, `Invalid ${label}`);
-
-export const idParams = z.object({ id: objectId("request id") });
+export const idParams = idParamsFor("request id");
 
 export const createBody = z.object({
   employeeId: objectId("employee id"),
@@ -13,8 +12,7 @@ export const createBody = z.object({
 export const listQuery = z.object({
   status: z.enum(["pending", "paid", "rejected"]).optional(),
   employee: objectId("employee id").optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
+  ...paging(),
 });
 
 export const rejectBody = z.object({ reason: z.string().trim().max(200).optional() });

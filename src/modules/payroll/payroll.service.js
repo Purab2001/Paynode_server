@@ -3,6 +3,7 @@ import { PayrollRequest } from "../../db/models/PayrollRequest.js";
 import { User } from "../../db/models/User.js";
 import { audit } from "../../db/models/AuditLog.js";
 import { conflict, notFound, unprocessable } from "../../lib/errors.js";
+import { pageInfo } from "../../lib/pagination.js";
 import { getStripe } from "../../lib/stripe.js";
 
 const PEOPLE = "name email photoUrl";
@@ -54,10 +55,8 @@ export async function list(viewer, { status, employee, page, limit }) {
   ]);
   return {
     items,
-    total,
     counts: Object.fromEntries(["pending", "paid", "rejected"].map((s) => [s, counts.find((c) => c._id === s)?.count ?? 0])),
-    page,
-    pages: Math.max(1, Math.ceil(total / limit)),
+    ...pageInfo(total, page, limit),
   };
 }
 
@@ -91,7 +90,8 @@ export async function createPaymentIntent(id) {
   const intent = await stripe.paymentIntents.create({
     amount: toCents(request.amount),
     currency: "usd",
-    automatic_payment_methods: { enabled: true },
+    // Card only: the Payment Element confirms in place. Redirect-based methods would need a return_url.
+    payment_method_types: ["card"],
     description: `Salary ${request.period.month}/${request.period.year} for ${request.employee.name}`,
     metadata: { payrollId: String(request._id) },
   });

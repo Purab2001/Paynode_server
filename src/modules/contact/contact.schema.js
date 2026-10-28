@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { TOPICS } from "../../db/models/ContactMessage.js";
+import { idParams as idParamsFor, paging } from "../../lib/schemas.js";
 
-export const idParams = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i, "Invalid message id") });
+export const idParams = idParamsFor("message id");
 
 export const submitBody = z.object({
   name: z.string().trim().min(2).max(100),
@@ -16,8 +17,7 @@ export const submitBody = z.object({
 
 export const listQuery = z.object({
   status: z.enum(["new", "read", "archived"]).optional(),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
+  ...paging(),
 });
 
 export const statusBody = z.object({ status: z.enum(["new", "read", "archived"]) });

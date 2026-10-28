@@ -80,6 +80,14 @@ describe("payroll stats", () => {
     expect(res.body.pending).toEqual({ count: 1, amount: 4000 });
   });
 
+  it("anchors the figures to the month the browser asks for", async () => {
+    const res = await request(app).get("/api/stats/payroll?year=2020&month=1").set(bearer("root"));
+    expect(res.body.period).toEqual({ year: 2020, month: 1 });
+    expect(res.body.thisMonth.rejected.count).toBe(1);
+    expect(res.body.thisMonth.pending.count).toBe(0);
+    expect((await request(app).get("/api/stats/payroll?month=13").set(bearer("root"))).status).toBe(400);
+  });
+
   it("limits HR to the requests they sent", async () => {
     const res = await request(app).get("/api/stats/payroll").set(bearer("hr1"));
     expect(res.body.all.paid.count).toBe(1);
