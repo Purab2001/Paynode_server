@@ -14,7 +14,8 @@ try {
   app = (req, res) => {
     res.statusCode = 500;
     res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ error: { code: "STARTUP_FAILED", message: "The API failed to start.", ...(err.fields && { invalid: err.fields }) } }));
+    res.end(JSON.stringify({ error: { code: "STARTUP_FAILED", message: "The API failed to start.", ...(err.fields && { invalid: err.fields }), reason: String(err.message).split("
+")[0].slice(0, 200) } }));
   };
 }
 
